@@ -1,6 +1,53 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "tst.h"
+
+int _test_deletion2() {
+    fprintf(stderr, "Testing TST Exhaust Test by Zackory C . . .");
+    struct TSTnode* tree = NULL;
+    int i,ds = 33,l;
+    char* words[33] = {
+        "mmm", "mmn", "mml", "mlm", "mln", "mll", "mnl", "mnn", "mnm",
+        "nmm", "nmn", "nml", "nlm", "nln", "nll", "nnl", "nnn", "nnm",
+        "lmm", "lmn", "lml", "llm", "lln", "lll", "lnl", "lnn", "lnm",
+        "ll", "mm", "nn", "l", "m", "n",
+        
+    };
+    for(int l=0;l<9999;l++)//testing memory dump
+        for (i = 0; i < ds; i++) {
+            if (insert_tst(&tree, words[i]) == 0) {
+                fprintf(stderr, "\nFailed: unexpected failure in inserting %s\n", words[i]);
+                return 0;
+            }
+        }
+    for (i = 0; i < ds; i++) {
+        if (!search_tst(tree, words[i])) {
+            fprintf(stderr, "\nFailed: unexpected failure in searching %s\n", words[i]);
+            return 0;
+        }
+    }
+    char* deleteOrder[33] = {
+        "lmm", "lmn", "lml", "llm", "lln", "lll", "lnl", "lnn", "lnm",
+        "nmm", "nmn", "nml", "nlm", "nln", "nll", "nnl", "nnn", "nnm",
+        "mmm", "mmn", "mml", "mlm", "mln", "mll", "mnl", "mnn", "mnm",
+        "ll", "mm", "nn", "l", "m", "n",
+    };
+    for (i = 0; i < ds; i++) {
+        if (!delete_tst(&tree, deleteOrder[i])) {
+            fprintf(stderr, "\nFailed: unexpected failure in deleting %s\n", deleteOrder[i]);
+            return 0;
+        }
+    }
+    for (i = 0; i < ds; i++) {
+        if (search_tst(tree, words[i])) {
+            fprintf(stderr, "\nFailed: unexpected success in searching %s\n", deleteOrder[i]);
+            return 0;
+        }
+    }
+    fprintf(stderr, "OK\n");
+    return 1;
+}
 
 int _test_deletion() {
     fprintf(stderr, "Testing Tree Deletion . . .");
@@ -40,8 +87,6 @@ int _test_deletion() {
             fprintf(stderr, "\nFailed: unexpected failure in deleting %s\n", deleteOrder[i]);
             return 0;
         }
-        else if (search_tst(tree, deleteOrder[i]))
-            return 0;
     }
     fprintf(stderr, "OK\n");
     return 1;
@@ -52,7 +97,7 @@ int test() {
     int i;
     
     char* words[10] = {"hello", "world", "welcome", "to", "computer", "science",
-        "class", "at","berkeley", "woohoo"};
+        "class", "at", "berkeley", "woohoo"};
     
     fprintf(stderr, "Testing TST Insertion . . .");
     for (int i = 0; i < 10; i++) {
@@ -90,39 +135,19 @@ int test() {
             return 0;
         }
     }
-    fprintf(stderr, "OK\n");
+    fprintf(stderr, "OK\n\n");
     
-    if (!_test_deletion()) // UnComment this line if you would like to test your delete_tst
-        return 0;
-    clear_tst(&tree);
-    _insert(&tree,"p",0);
-    print(tree);fprintf(stderr,"\n");
-    _insert(&tree,"b",0);
-    print(tree);fprintf(stderr,"\n");
-    _insert(&tree,"d",0);
-    print(tree);fprintf(stderr,"\n");
-    _delete(&tree,"p");
-    print(tree);fprintf(stderr,"\n");
-    _delete(&tree,"d");
-    print(tree);fprintf(stderr,"\n");
-    
-    clear_tst(&tree);
-    _insert(&tree,"b",0);
-    print(tree);fprintf(stderr,"\n");
-    _insert(&tree,"p",0);
-    print(tree);fprintf(stderr,"\n");
-    // _delete(&tree,"b");
-    //print(tree);fprintf(stderr,"\n");
-    
+    return _test_deletion() && _test_deletion2(); // UnComment this line if you would like to test your delete_tst
     return 1;
 }
 
 int main(int argc, char const *argv[]){
     if (test())
-        fprintf(stderr, "\nPASS\n");
+        fprintf(stderr, "PASS\n");
     else
         fprintf(stderr, "Test Failed.\n");
     
-    
     return 0;
 }
+
+
