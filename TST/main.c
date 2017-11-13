@@ -27,6 +27,7 @@ int _test_deletion2() {
             return 0;
         }
     }
+    _test_memory(tree) ? fprintf(stderr, "Memory Test Passed") : fprintf(stderr, "Memory Test did not Passed");
     char* deleteOrder[33] = {
         "lmm", "lmn", "lml", "llm", "lln", "lll", "lnl", "lnn", "lnm",
         "nmm", "nmn", "nml", "nlm", "nln", "nll", "nnl", "nnn", "nnm",
@@ -46,6 +47,24 @@ int _test_deletion2() {
         }
     }
     fprintf(stderr, "OK\n");
+    return 1;
+}
+
+int _test_memory(struct TSTnode* tree){
+    char* words[33] = {
+        "mmm", "mmn", "mml", "mlm", "mln", "mll", "mnl", "mnn", "mnm",
+        "nmm", "nmn", "nml", "nlm", "nln", "nll", "nnl", "nnn", "nnm",
+        "lmm", "lmn", "lml", "llm", "lln", "lll", "lnl", "lnn", "lnm",
+        "ll", "mm", "nn", "l", "m", "n",
+        
+    };
+    int i=0;
+    for (i = 0; i < 33; i++) {
+        if (!search_tst(tree, words[i])) {
+            fprintf(stderr, "\nFailed: unexpected failure in searching %s\n", words[i]);
+            return 0;
+        }
+    }
     return 1;
 }
 

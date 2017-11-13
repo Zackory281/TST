@@ -1,9 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "tst.h"
 
-void restructure(struct TSTnode** tree);
-void print(struct TSTnode* tree);
 /* ############### TST FUNCTIONS #################
  These comprise the public interface for our TST
  ################################################ */
@@ -12,7 +11,13 @@ void print(struct TSTnode* tree);
  * returns 1 if str was inserted into tree successfully,
  otherwise returns 0.
  * invokes _insert to insert word into internal tree. */
+struct TSTnode** getRightMostNode(struct TSTnode** tree);
+int restructNode(struct TSTnode** tree);
+
 int insert_tst(struct TSTnode** tree, const char* str) {
+    if(search_tst(*tree, str)){
+        return 1;
+    }
     return _insert(tree, str, 0);
 }
 
@@ -35,7 +40,7 @@ int search_tst(struct TSTnode* tree, const char* str) {
  returns 0 if encounter any error, such as str does not exist.
  * should invoke _delete to delete str from internal tree. */
 int delete_tst(struct TSTnode** tree, const char* str) {
-    if (search_tst(*tree, str)) {
+    if (search_tst(*tree, str) && str) {
         return _delete(tree, str);
     }
     return 0;
@@ -59,19 +64,14 @@ int prefix_tst(struct TSTnode* tree, const char* pre) {
  * Remember to set old TSTnode pointer to NULL */
 void clear_tst(struct TSTnode** tree) {
     // TODO: TST #4
-    if ((*tree)->left)
-        clear_tst(&((*tree)->left));
-    if ((*tree)->sub)
-        clear_tst(&((*tree)->sub));
-    if ((*tree)->right)
-        clear_tst(&((*tree)->right));
-    else
-    {
+    if(*tree != NULL){
+        clear_tst(&(*tree)->left);
+        clear_tst(&(*tree)->right);
+        clear_tst(&(*tree)->sub);
         free(*tree);
-        *tree = 0;
+        *tree = NULL;
     }
 }
-
 
 /* ############### TRIE NODE FUNCTIONS #################
  These functions internally implement TST's public interface
@@ -80,51 +80,46 @@ void clear_tst(struct TSTnode** tree) {
 /* new_node returns a new node with provided character */
 struct TSTnode* new_tst_node(char self) {
     // TODO: TST #1
-    struct TSTnode* newNode = (struct TSTnode*) calloc(1,sizeof(struct TSTnode));
-    newNode->self=self;
-    return newNode;
+    struct TSTnode* node = (struct TSTnode*)calloc(1,sizeof(struct TSTnode));
+    if(!node){
+        allocation_failed();
+        return 0;
+    }
+    node->self = self;
+    return node;
 }
 
 /* _insert inserts the string str (starting from character at $position into
  tst node @tree. A leaf TSTnode should have a copy of the inserted str
  * Returns 1 if the insertion was successful, otherwise returns 0. */
 int _insert(struct TSTnode** tree, const char* str, int position) {
-    // TODO: TST #2
-    // Hint: to copy a string, use strcpy
-    if(*tree)    printf("the current self (we are inside insert) is: %c,position is %d\n",(*tree)->self,position);
-    else
-        fprintf(stderr,"there is no self, the tree was a lai\n");
-    if (!str[position])
-        return 1;
-    else if (!(*tree))
-    {
-        *tree = new_tst_node(str[position]);
-        return _insert(tree,str,position);
-    }
-    else if ((*tree)->self == str[position])
-    {
-        if (!str[position+1]){
-            (*tree)->word = str;
-            printf("inside insert inserting the word: %s\n",str);
-            return 1;
-        }
-        return _insert(&((*tree)->sub),str,position+1);
-    }
-    else if ((*tree)->self > str[position])
-        return _insert(&((*tree)->left),str,position);
-    else if ((*tree)->self < str[position])
-        return _insert(&((*tree)->right),str,position);
-    else
+    //condition check start
+    if(position >= strlen(str) || position < 0 || !str){
         return 0;
+    }//condition check end
+    //variable setting
+    char c = *(str+position);//end of variable setting
+    //check for new node insertion and wording
+    if(!*tree){
+        *tree = new_tst_node(c);
+    }
+    char s = (*tree)->self;
+    if(!*(str+position+1) && s == c){
+        (*tree)->word = str;
+        return 1;
+    }//end of check new node insertion and wording
+    //start of navigating
+    if(s == c){
+        return _insert(&((*tree)->sub), str, position+1);
+    }else if(s < c){
+        return _insert(&((*tree)->right), str, position);
+    }else{
+        return _insert(&((*tree)->left), str, position);
+    }//end of navigating
 }
 
-/* _delete deletes the string str from tst tree
- * Return 1 if the deletion was successful,
- * otherwise returns 0. */
 int _delete(struct TSTnode** tree, const char* str) {
-    int flag = 0;
-    if (!tree)
-        flag = 0;
+    int flag = 1;
     if (*str < (*tree)->self)
         flag = _delete(&(*tree)->left, str);
     else if (*str > (*tree)->self)
@@ -132,117 +127,57 @@ int _delete(struct TSTnode** tree, const char* str) {
     else if (*(str+1))
         flag = _delete(&(*tree)->sub, str+1);
     else {
-        printf("horray we are at the end of a word and the word is: %s\n",(*tree)->word);
+        printf("delete:word ends at %s\n",(*tree)->word);
+        (*tree)->word = 0;//"delete" the word
         flag = 2;
     }
-    struct TSTnode* right = (*tree)->right;
-    struct TSTnode* left = (*tree)->left;
-    struct TSTnode* sub = (*tree)->sub;
-    //restructure:always called can modifying the tree without obstructing existing words
-    if(!(*tree)->word && !sub){
-        if(right && left){
-            //TODO-perform difficult algorithmic restructring function
-        }else if(right && !left){
-            //TODO-replace tree with right
-        }else if(!right && left){
-            //TODO-replace tree with left
+    struct TSTnode** r = &(*tree)->right;//helper variables
+    struct TSTnode** l = &(*tree)->left;
+    struct TSTnode** s = &(*tree)->sub;
+    if(!*s && !(*tree)->word){//formatting which takes place everytime
+        if(*l && *r){
+            if((*l)->right){
+                struct TSTnode** n = getRightMostNode(l);
+                *tree = (*n)->right;
+                (*n)->right = (*n)->right->left;
+                (*tree)->right = *r;
+                (*tree)->left = *l;
+            }else{
+                _clear(*tree);
+                *tree = *l;
+                (*tree)->right = *r;
+            }
+        }else if(*l && !*r){
+            _clear(*tree);
+            *tree = *l;
+        }else if(!*l && *r){
+            _clear(*tree);
+            *tree = *r;
         }
     }
-    //deletion: only called when flag is 2
-    if(flag == 2){
-        if(!(*tree)->word && !sub && (*tree)->self == *str && !right && !left){
-            //TODO-delete this(tree) node
+    if(flag == 2){//initiating the world's most difficult algorithm edit:or so it was
+        if(!*l && !*r && (*tree)->self == *str && !(*tree)->word){
+            clear_tst(tree);
+            return 2;//character deletion complete may have more to delete
         }else{
-            flag = 1;
+            return 1;//hit worded node and have no right and left, program may exit
         }
     }
     return flag;
 }
 
-void restructure(struct TSTnode** tree)
-{
-    struct TSTnode** newNode;
-    if ((*tree)->left)
-    {
-        newNode = &((*tree)->left);
-        if (! ((*newNode)->right))
-        {
-            (*newNode)->right = (*tree)->right;
-            free(*tree);
-            **tree = **newNode;
-        }
-        else
-        {
-            while ((*newNode)->right)
-                newNode = &((*newNode)->right);
-            (*newNode)->right = (*tree)->right;
-            if (! ((*newNode)->left) )
-            {
-                (*newNode)->left = (*tree)->left;
-                free(*tree);
-                **tree = **newNode;
-                *newNode = 0;
-            }
-            else
-            {
-                struct TSTnode* newerNode = &(*((*newNode)->left));
-                (*newNode)->left = (*tree)->left;
-                **tree = **newNode;
-                //free(*tree);
-                *tree = NULL;
-                *newNode = newerNode;
-            }
-        }
+struct TSTnode** getRightMostNode(struct TSTnode** tree){
+    if(!((*tree)->right))
+        return tree;
+    if((*tree)->right && !(*tree)->right->right){
+        return (tree);
     }
-    else
-    {
-        newNode = &((*tree)->right);
-        if (! ((*tree)->right) )
-        {
-            free(*tree);
-            **tree = **newNode;
-        }
-        else if (! ((*newNode)->left))
-        {
-            (*newNode)->left = (*tree)->left;
-            free(*tree);
-            **tree = **newNode;
-        }
-        else
-        {
-            while ((*newNode)->left)
-                newNode = &((*newNode)->left);
-            (*newNode)->left = (*tree)->left;
-            if (! ((*newNode)->sub) )
-            {
-                (*newNode)->sub = (*tree)->right;
-                free(*tree);
-                **tree = **newNode;
-                *newNode = 0;
-            }
-            else if (! ((*newNode)->right) )
-            {
-                (*newNode)->right = (*tree)->right;
-                free(*tree);
-                **tree = **newNode;
-                *newNode = 0;
-            }
-            else
-            {
-                struct TSTnode* newerNode = &(*((*newNode)->right));
-                (*newNode)->right = (*tree)->right;
-                free(*tree);
-                **tree = **newNode;
-                *newNode = newerNode;
-            }
-        }
-    }
+    return getRightMostNode(&((*tree)->right));
 }
+
 void _clear(struct TSTnode* node) {
-    // TODO: TST #4helper
-    // You may or may not need to use this function.
-    
-    
+    free(node);
+    node = 0;
 }
 
 /* ############### HELPER FUNCTIONS ####################
@@ -256,33 +191,4 @@ int allocation_failed() {
     return 0;
 }
 
-void print(struct TSTnode* tree)
-{
-    if (!tree)
-        return;
-    printf("the current self is: %c\n",(tree)->self);
-    return;
-    fprintf(stderr,"node %c {",tree->self);
-    if (tree->left)
-    {
-        fprintf(stderr, " left: ");
-        print(tree->left);
-    }
-    else
-        fprintf(stderr," left: 0");
-    if (tree->sub)
-    {
-        fprintf(stderr, " sub: ");
-        print(tree->sub);
-    }
-    else
-        fprintf(stderr," sub: 0");
-    if (tree->right)
-    {
-        fprintf(stderr, " right: ");
-        print(tree->right);
-        fprintf(stderr, "} ");
-    }
-    else
-        fprintf(stderr," right: 0}");
-}
+
